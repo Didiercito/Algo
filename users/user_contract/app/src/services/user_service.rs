@@ -1,79 +1,53 @@
-mod UserState;
-
-use gstd::exec::sleep_for;
 use sails_rs::{
-    gstd::{
-        service,
-        msg
-    },
-    prelude::*
+    prelude::*,
+    gstd::msg,
 };
 
-use crate::states::user_service::{
-    STATE,
-    CustomStruct,
-    IoCustomStruct,
-    CustomInput
-};
 
-use crate::UserState::UserState;
+use crate::states::user_state::{UserRegistrationState, IoUserRegistrationState};
 
-
-#[derive(Debug, Decode, Encode, TypeInfo)]
-#[codec(crate = gstd::codec)]
-#[scale_info(crate = gstd::scale_info)]
-pub enum Events {
-    registerUser {
-        user: UserState,
-    }
-}
-
-
-#[derive(Debug, Decode, Encode, TypeInfo)]
-#[codec(crate = gstd::codec)]
-#[scale_info(crate = gstd::scale_info)]
-pub enum Errors {
-    FirstError,
-    SecondError,
-    ThirdErrors,
-    FourtErrors,
-}
 
 
 #[derive(Default)]
-pub struct Service;
+pub struct UserRegistrationService;
 
-#[service]
-impl Service {
-    pub fn new() -> Self {
-        Self
+
+impl UserRegistrationService {
+    
+    pub fn seed() {
+        UserRegistrationState::init_state();
+    }
+
+    
+    pub fn register_user(&mut self, user_name: String) {
+        
+        UserRegistrationState::state_mut()
+            .all_users
+            .insert(msg::source().into(), user_name);
     }
 }
 
 
-pub async fn register_user(&mut self, username: String) -> Result<Events, Errors> {
-    let state: &mut CustomStruct =
-        unsafe { STATE.as_mut().expect("El contrato no está inicializado") };
-
-    let user_id = msg::source(); 
-
-    if state.users.contains_key(&user_id) {
-        return Err(Errors::FirstError); 
+#[service]
+impl UserRegistrationService {
+    
+    pub fn new() -> Self {
+        Self
     }
 
-    let new_user = UserState {
-        user_id,
-        username: username.clone(),
-    };
+    
+   pub fn register(&mut self, user_name: String) -> bool {
+    // Lógica de registro del usuario
+    if user_name.is_empty() {
+        return false; // Devuelve false si el nombre de usuario está vacío
+    }
 
-    state.users.insert(user_id, new_user);
+    // Supongamos que el registro es exitoso
+    true // Devuelve true si el registro es exitoso
+}
 
-    sleep_for(10).await;
-
-    Ok(Events::registerUser {
-        user: UserState {
-            user_id,
-            username,
-        },
-    })
+    
+    pub fn get_users(&self) -> IoUserRegistrationState {
+        UserRegistrationState::state_ref().to_owned().into()
+    }
 }

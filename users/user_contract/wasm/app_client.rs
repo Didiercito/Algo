@@ -43,110 +43,66 @@ pub mod app_factory {
         }
     }
 }
-pub struct TrafficLight<R> {
+pub struct UserRegistration<R> {
     remoting: R,
 }
-impl<R> TrafficLight<R> {
+impl<R> UserRegistration<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::TrafficLight for TrafficLight<R> {
+impl<R: Remoting + Clone> traits::UserRegistration for UserRegistration<R> {
     type Args = R::Args;
-    fn green(&mut self) -> impl Call<Output = TrafficLightEvent, Args = R::Args> {
-        RemotingAction::<_, traffic_light::io::Green>::new(self.remoting.clone(), ())
+    fn register(&mut self, user_name: String) -> impl Call<Output = bool, Args = R::Args> {
+        RemotingAction::<_, user_registration::io::Register>::new(self.remoting.clone(), user_name)
     }
-    fn red(&mut self) -> impl Call<Output = TrafficLightEvent, Args = R::Args> {
-        RemotingAction::<_, traffic_light::io::Red>::new(self.remoting.clone(), ())
-    }
-    fn yellow(&mut self) -> impl Call<Output = TrafficLightEvent, Args = R::Args> {
-        RemotingAction::<_, traffic_light::io::Yellow>::new(self.remoting.clone(), ())
-    }
-    fn traffic_light(&self) -> impl Query<Output = IoTrafficLightState, Args = R::Args> {
-        RemotingAction::<_, traffic_light::io::TrafficLight>::new(self.remoting.clone(), ())
+    fn get_users(&self) -> impl Query<Output = IoUserRegistrationState, Args = R::Args> {
+        RemotingAction::<_, user_registration::io::GetUsers>::new(self.remoting.clone(), ())
     }
 }
 
-pub mod traffic_light {
+pub mod user_registration {
     use super::*;
 
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct Green(());
-        impl Green {
+        pub struct Register(());
+        impl Register {
             #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <Green as ActionIo>::encode_call(&())
+            pub fn encode_call(user_name: String) -> Vec<u8> {
+                <Register as ActionIo>::encode_call(&user_name)
             }
         }
-        impl ActionIo for Green {
+        impl ActionIo for Register {
             const ROUTE: &'static [u8] = &[
-                48, 84, 114, 97, 102, 102, 105, 99, 76, 105, 103, 104, 116, 20, 71, 114, 101, 101,
-                110,
+                64, 85, 115, 101, 114, 82, 101, 103, 105, 115, 116, 114, 97, 116, 105, 111, 110,
+                32, 82, 101, 103, 105, 115, 116, 101, 114,
             ];
-            type Params = ();
-            type Reply = super::TrafficLightEvent;
+            type Params = String;
+            type Reply = bool;
         }
-        pub struct Red(());
-        impl Red {
+        pub struct GetUsers(());
+        impl GetUsers {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
-                <Red as ActionIo>::encode_call(&())
+                <GetUsers as ActionIo>::encode_call(&())
             }
         }
-        impl ActionIo for Red {
+        impl ActionIo for GetUsers {
             const ROUTE: &'static [u8] = &[
-                48, 84, 114, 97, 102, 102, 105, 99, 76, 105, 103, 104, 116, 12, 82, 101, 100,
+                64, 85, 115, 101, 114, 82, 101, 103, 105, 115, 116, 114, 97, 116, 105, 111, 110,
+                32, 71, 101, 116, 85, 115, 101, 114, 115,
             ];
             type Params = ();
-            type Reply = super::TrafficLightEvent;
-        }
-        pub struct Yellow(());
-        impl Yellow {
-            #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <Yellow as ActionIo>::encode_call(&())
-            }
-        }
-        impl ActionIo for Yellow {
-            const ROUTE: &'static [u8] = &[
-                48, 84, 114, 97, 102, 102, 105, 99, 76, 105, 103, 104, 116, 24, 89, 101, 108, 108,
-                111, 119,
-            ];
-            type Params = ();
-            type Reply = super::TrafficLightEvent;
-        }
-        pub struct TrafficLight(());
-        impl TrafficLight {
-            #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <TrafficLight as ActionIo>::encode_call(&())
-            }
-        }
-        impl ActionIo for TrafficLight {
-            const ROUTE: &'static [u8] = &[
-                48, 84, 114, 97, 102, 102, 105, 99, 76, 105, 103, 104, 116, 48, 84, 114, 97, 102,
-                102, 105, 99, 76, 105, 103, 104, 116,
-            ];
-            type Params = ();
-            type Reply = super::IoTrafficLightState;
+            type Reply = super::IoUserRegistrationState;
         }
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-pub enum TrafficLightEvent {
-    Green,
-    Yellow,
-    Red,
-}
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct IoTrafficLightState {
-    pub current_light: String,
+pub struct IoUserRegistrationState {
     pub all_users: Vec<(ActorId, String)>,
 }
 
@@ -161,11 +117,9 @@ pub mod traits {
     }
 
     #[allow(clippy::type_complexity)]
-    pub trait TrafficLight {
+    pub trait UserRegistration {
         type Args;
-        fn green(&mut self) -> impl Call<Output = TrafficLightEvent, Args = Self::Args>;
-        fn red(&mut self) -> impl Call<Output = TrafficLightEvent, Args = Self::Args>;
-        fn yellow(&mut self) -> impl Call<Output = TrafficLightEvent, Args = Self::Args>;
-        fn traffic_light(&self) -> impl Query<Output = IoTrafficLightState, Args = Self::Args>;
+        fn register(&mut self, user_name: String) -> impl Call<Output = bool, Args = Self::Args>;
+        fn get_users(&self) -> impl Query<Output = IoUserRegistrationState, Args = Self::Args>;
     }
 }

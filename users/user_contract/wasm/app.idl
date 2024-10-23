@@ -1,11 +1,4 @@
-type TrafficLightEvent = enum {
-  Green,
-  Yellow,
-  Red,
-};
-
-type IoTrafficLightState = struct {
-  current_light: str,
+type IoUserRegistrationState = struct {
   all_users: vec struct { actor_id, str },
 };
 
@@ -13,10 +6,8 @@ constructor {
   New : ();
 };
 
-service TrafficLight {
-  Green : () -> TrafficLightEvent;
-  Red : () -> TrafficLightEvent;
-  Yellow : () -> TrafficLightEvent;
-  query TrafficLight : () -> IoTrafficLightState;
+service UserRegistration {
+  Register : (user_name: str) -> bool;
+  query GetUsers : () -> IoUserRegistrationState;
 };
 
